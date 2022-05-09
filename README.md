@@ -6,7 +6,7 @@ A simple tool to extract and reduce the size of scanned pdf document.
 
 ```bash
 go build -v
-shrinkpdf path_to_file.pdf
+./shrinkpdf path_to_file.pdf
 ```
 
 ## returns :
