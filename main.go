@@ -31,15 +31,25 @@ func main() {
 }
 
 func extractPdf(name string) error {
+	base := filepath.Base(name)
+	ext := filepath.Ext(base)
+	base = strings.TrimSuffix(base, ext)
+	pdfName := fmt.Sprintf("%s.pdf", base)
+	if filepath.Clean(name) == filepath.Clean(pdfName) {
+		return fmt.Errorf("won't let you overwrite the original pdf file")
+	}
+
 	doc, err := fitz.New(name)
 	if err != nil {
 		return err
 	}
 	defer doc.Close()
 
-	name = filepath.Base(name)
-	ext := filepath.Ext(name)
-	base := strings.TrimSuffix(name, ext)
+	info, err := os.Stat(name)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s: %d bytes\n", filepath.Clean(name), info.Size())
 
 	// Ensure pdf file has no text
 	for n := 0; n < doc.NumPage(); n++ {
@@ -58,6 +68,8 @@ func extractPdf(name string) error {
 
 	// Extract pages as images
 	for n := 0; n < doc.NumPage(); n++ {
+		pdf.AddPage()
+
 		img, err := doc.Image(n)
 		if err != nil {
 			return err
@@ -85,10 +97,19 @@ func extractPdf(name string) error {
 		f.Close()
 
 		pageW, pageH := pdf.GetPageSize()
-
 		pdf.Image(imgName, 0, 0, pageW, pageH, false, "", 0, "")
 	}
 
-	pdfName := fmt.Sprintf("%s.pdf", base)
-	return pdf.OutputFileAndClose(pdfName)
+	fmt.Printf("saving %q\n", pdfName)
+	err = pdf.OutputFileAndClose(pdfName)
+	if err != nil {
+		return err
+	}
+
+	info, err = os.Stat(pdfName)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s: %d bytes\n", filepath.Clean(pdfName), info.Size())
+	return nil
 }
